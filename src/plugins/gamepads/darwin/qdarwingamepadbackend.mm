@@ -55,42 +55,59 @@
 -(instancetype)initWithBackend:(QDarwinGamepadBackend *)gamepadBackend
 {
     if ((self = [self init])) {
+        self.connectObserver = nil;
+        self.disconnectObserver = nil;
         backend = gamepadBackend;
         connectedControllers = [[NSMutableArray alloc] init];
-        //Setup observers for monitoring controller connections/disconnections
-        self.connectObserver = [[NSNotificationCenter defaultCenter] addObserverForName:GCControllerDidConnectNotification
-                                                                                 object:nil
-                                                                                  queue:[NSOperationQueue mainQueue]
-                                                                             usingBlock:^(NSNotification *note) {
-            GCController *controller = (GCController*)note.object;
-            [self addMonitoredController:controller];
 
-        }];
-        self.disconnectObserver = [[NSNotificationCenter defaultCenter] addObserverForName:GCControllerDidDisconnectNotification
-                                                                                    object:nil
-                                                                                    queue:[NSOperationQueue mainQueue]
-                                                                               usingBlock:^(NSNotification *note) {
-            GCController *controller = (GCController*)note.object;
-            [self removeMonitoredController:controller];
-        }];
         //Set initial controller values
         for (int i = 0; i < 4; ++i)
             [connectedControllers addObject:[NSNull null]];
-
-        //Add monitoring for any alrready connected controllers
-        for (NSUInteger i = 0; i < [[GCController controllers] count]; ++i) {
-            [self addMonitoredController:[GCController controllers][i]];
-        }
     }
     return self;
 }
 
 -(void)dealloc
 {
-    [[NSNotificationCenter defaultCenter] removeObserver:self.connectObserver];
-    [[NSNotificationCenter defaultCenter] removeObserver:self.disconnectObserver];
+    [self stop];
     [connectedControllers release];
     [super dealloc];
+}
+
+-(void)start
+{
+    //Setup observers for monitoring controller connections/disconnections
+    self.connectObserver = [[NSNotificationCenter defaultCenter] addObserverForName:GCControllerDidConnectNotification
+                                                                             object:nil
+                                                                              queue:[NSOperationQueue mainQueue]
+                                                                         usingBlock:^(NSNotification *note) {
+        GCController *controller = (GCController*)note.object;
+        [self addMonitoredController:controller];
+
+    }];
+    self.disconnectObserver = [[NSNotificationCenter defaultCenter] addObserverForName:GCControllerDidDisconnectNotification
+                                                                                object:nil
+                                                                                queue:[NSOperationQueue mainQueue]
+                                                                           usingBlock:^(NSNotification *note) {
+        GCController *controller = (GCController*)note.object;
+        [self removeMonitoredController:controller];
+    }];
+
+    //Add monitoring for any alrready connected controllers
+    NSArray<GCController *>* controllers = [GCController controllers];
+    for (NSUInteger i = 0; i < [controllers count]; ++i) {
+        [self addMonitoredController:controllers[i]];
+    }
+}
+
+-(void)stop
+{
+    if (self.connectObserver)
+        [[NSNotificationCenter defaultCenter] removeObserver:self.connectObserver];
+    if (self.disconnectObserver)
+        [[NSNotificationCenter defaultCenter] removeObserver:self.disconnectObserver];
+    self.connectObserver = nil;
+    self.disconnectObserver = nil;
 }
 
 -(void)addMonitoredController:(GCController *)controller
@@ -512,12 +529,14 @@ QDarwinGamepadBackend::~QDarwinGamepadBackend()
 bool QDarwinGamepadBackend::start()
 {
     m_isMonitoringActive = true;
+    [m_darwinGamepadManager start];
     return true;
 }
 
 void QDarwinGamepadBackend::stop()
 {
     m_isMonitoringActive = false;
+    [m_darwinGamepadManager stop];
 }
 
 void QDarwinGamepadBackend::darwinGamepadAdded(int index)
