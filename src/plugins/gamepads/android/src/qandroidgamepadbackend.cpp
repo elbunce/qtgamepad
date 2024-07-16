@@ -567,7 +567,7 @@ bool QAndroidGamepadBackend::start()
         QMutexLocker lock(&m_mutex);
         if (QtAndroidPrivate::androidSdkVersion() >= 16) {
             if (!m_qtGamepad.isValid())
-                m_qtGamepad = QJniObject(qtGamePadClassName, "(Landroid/app/Activity;)V", QtAndroidPrivate::activity());
+				m_qtGamepad = QJniObject(qtGamePadClassName, "(Landroid/app/Activity;)V", QNativeInterface::QAndroidApplication::context().object<jobject>());
             m_qtGamepad.callMethod<void>("register", "(J)V", jlong(this));
         }
     }
