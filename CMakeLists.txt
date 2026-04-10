@@ -3,7 +3,7 @@
 
 # Generated from qtgamepad.pro.
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.31)
 
 include(.cmake.conf)
 project(QtGamepad
@@ -15,6 +15,8 @@ project(QtGamepad
 
 find_package(Qt6 ${PROJECT_VERSION} CONFIG REQUIRED COMPONENTS BuildInternals Core)
 find_package(Qt6 ${PROJECT_VERSION} CONFIG OPTIONAL_COMPONENTS Gui Widgets Quick)
+find_package(SDL2)
+qt_internal_project_setup()
 
 if(NOT TARGET Qt::Gui)
     message(NOTICE "Skipping the build as the condition \"TARGET Qt::Gui\" is not met.")
